@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Dashboard · Rally Disuiza</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red:        #C8202A;
+    --red-dark:   #A01820;
+    --gold:       #C9A84C;
+    --gold-light: #E0BE6A;
+    --navy:       #0D1E3A;
+    --navy-mid:   #122348;
+    --white:      #F5F3EE;
+    --muted:      #7A8499;
+    --border:     rgba(201,168,76,0.18);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  
+  body {
+    font-family:'Montserrat',sans-serif;
+    background:var(--navy); color:var(--white);
+    min-height:100vh;
+    padding: 30px 40px;
+    position: relative;
+    overflow-x: hidden;
+  }
+  body::before {
+    content:''; position:fixed; inset:0; pointer-events:none; z-index:-1;
+    background:
+      radial-gradient(ellipse 80% 60% at 15% 10%,rgba(200,32,42,0.06) 0%,transparent 60%),
+      radial-gradient(ellipse 60% 40% at 85% 90%,rgba(201,168,76,0.05) 0%,transparent 55%);
+  }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 16px; margin-bottom: 30px;
+  }
+  .brand-lockup svg { height: 40px; width: auto; }
+  
+  .live-badge {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(91,173,126,0.1); border: 1px solid rgba(91,173,126,0.3);
+    padding: 8px 16px; border-radius: 30px;
+  }
+  .live-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #5BAD7E;
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.8)} }
+  .live-text { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: #5BAD7E; text-transform: uppercase; }
+
+  h1 {
+    font-family:'Cormorant Garamond',serif; font-size: 38px; font-weight: 300; line-height: 1.1;
+    color: var(--white); margin-bottom: 30px; text-align: center;
+  }
+  h1 em { font-style: italic; color: var(--gold-light); }
+
+  /* ── LAYOUT GRID ── */
+  .dashboard-wrapper {
+    display: grid;
+    grid-template-columns: 240px 1fr 320px;
+    gap: 24px;
+    max-width: 1400px; margin: 0 auto;
+  }
+
+  /* ── KPI COLUMN ── */
+  .kpi-column { display: flex; flex-direction: column; gap: 20px; }
+  .kpi-card {
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+    border-radius: 14px; padding: 30px 20px; text-align: center;
+    backdrop-filter: blur(10px); position: relative; overflow: hidden;
+  }
+  .kpi-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  }
+  .kpi-card.red-glow::before { background:linear-gradient(90deg,transparent,var(--red),transparent); }
+  
+  .kpi-value {
+    font-family:'Cormorant Garamond',serif; font-size: 64px; 
+    font-weight: 300; color: var(--gold-light); line-height: 1; margin-bottom: 8px;
+  }
+  .kpi-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.5px; 
+    color: var(--muted); text-transform: uppercase;
+  }
+
+  /* ── QUESTIONS COLUMN (CENTER) ── */
+  .questions-column { display: flex; flex-direction: column; gap: 20px; }
+  .q-card {
+    background: rgba(13,30,58,0.6); border: 1px solid rgba(201,168,76,0.15);
+    border-radius: 14px; padding: 22px 26px;
+  }
+  .q-title {
+    font-size: 13px; font-weight: 600; color: var(--white);
+    margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px;
+  }
+  
+  /* Bars */
+  .bar-row { display: flex; align-items: center; margin-bottom: 10px; gap: 14px; }
+  .bar-label {
+    width: 130px; font-size: 11.5px; color: rgba(245,243,238,0.8);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .bar-label span { color: var(--gold); font-weight: 700; margin-right: 6px; font-size: 10px; }
+  .bar-track {
+    flex: 1; height: 8px; background: rgba(255,255,255,0.06);
+    border-radius: 4px; overflow: hidden; position: relative;
+  }
+  .bar-fill {
+    height: 100%; width: 0%; border-radius: 4px;
+    background: linear-gradient(90deg, #3DB3A8, #5BAD7E); /* Color teal/green para que resalte */
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  /* Alternar color de las barras para la gráfica central */
+  .q-card:nth-child(2) .bar-fill { background: linear-gradient(90deg, var(--gold-light), var(--gold)); }
+  .q-card:nth-child(3) .bar-fill { background: linear-gradient(90deg, var(--red), var(--red-dark)); }
+
+  .bar-pct { width: 35px; text-align: right; font-size: 11.5px; font-weight: 600; color: var(--white); font-variant-numeric: tabular-nums; }
+
+  /* ── LEADERBOARD COLUMN ── */
+  .leaderboard-column {
+    background: rgba(13,30,58,0.6); border: 1px solid rgba(200,32,42,0.2);
+    border-radius: 14px; padding: 26px 20px;
+    display: flex; flex-direction: column;
+  }
+  .leaderboard-title {
+    font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--gold);
+    text-transform: uppercase; margin-bottom: 18px; text-align: center;
+  }
+  
+  .lead-list { display: flex; flex-direction: column; gap: 8px; }
+  .lead-item {
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
+    padding: 12px 14px; border-radius: 10px;
+  }
+  .lead-info { display: flex; align-items: center; gap: 12px; overflow: hidden; }
+  .lead-rank { font-size: 12px; font-weight: 700; color: var(--muted); width: 20px; }
+  .lead-name { font-size: 13px; font-weight: 500; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lead-score { font-family:'Cormorant Garamond',serif; font-size: 20px; font-weight: 600; color: var(--gold-light); }
+
+  /* Rank top 3 colors */
+  .lead-item:nth-child(1) .lead-rank { color: var(--gold); }
+  .lead-item:nth-child(2) .lead-rank { color: #fff; }
+  .lead-item:nth-child(3) .lead-rank { color: #e8857e; }
+  
+  .empty-state { text-align: center; padding: 40px 10px; color: var(--muted); font-size: 12px; font-style: italic; }
+
+  /* LOADER */
+  #loader { position: fixed; bottom: 20px; right: 20px; font-size: 10px; color: var(--muted); letter-spacing: 1px; transition: opacity 0.3s; }
+
+  @media(max-width: 1024px) {
+    .dashboard-wrapper { grid-template-columns: 1fr; }
+    .kpi-column { flex-direction: row; }
+    .kpi-card { flex: 1; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="brand-lockup">
+      <svg class="disuiza-logo-svg" viewBox="0 0 220 50" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="16" width="38" height="18" fill="#C8202A"/>
+        <rect x="10" y="6" width="18" height="38" fill="#C8202A"/>
+        <text x="48" y="39" font-family="'Arial Black','Impact',sans-serif" font-size="36" font-weight="900" fill="#C8202A" letter-spacing="-1">DISUIZA</text>
+      </svg>
+    </div>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      <span class="live-text">Live Dashboard</span>
+    </div>
+  </div>
+
+  <h1>Resultados en <em>Tiempo Real</em></h1>
+
+  <div class="dashboard-wrapper">
+    
+    <div class="kpi-column">
+      <div class="kpi-card red-glow">
+        <div class="kpi-value" id="kpi-avg">0</div>
+        <div class="kpi-label">Puntaje Promedio</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-value" id="kpi-total">0</div>
+        <div class="kpi-label">Participantes</div>
+      </div>
+    </div>
+
+    <div class="questions-column">
+      
+      <div class="q-card">
+        <div class="q-title">1. ¿Qué pensaste ante un desafío?</div>
+        <div class="bar-row"><div class="bar-label"><span>A</span> Esto no es para mí</div><div class="bar-track"><div class="bar-fill" id="bar-q1-1"></div></div><div class="bar-pct" id="pct-q1-1">0%</div></div>
+        <div class="bar-row"><div class="bar-label"><span>B</span> Mejor paso al siguiente</div><div class="bar-track"><div class="bar-fill" id="bar-q1-2"></div></div><div class="bar-pct" id="pct-q1-2">0%</div></div>
+        <div class="bar-row"><div class="bar-label"><span>C</span> Voy a intentarlo</div><div class="bar-track"><div class="bar-fill" id="bar-q1-3"></div></div><div class="bar-pct" id="pct-q1-3">0%</div></div>
+        <div class="bar-row"><div class="bar-label"><span>D</span> Me interesa resolverlo</div><div class="bar-track"><div class="bar-fill" id="bar-q1-4"></div></div><div class="bar-pct" id="pct-q1-4">0%</div></div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-title">2. ¿Qué hiciste ante la frustración?</div>
+        <div class="bar-row"><div class="bar-label"><span>A</span> Dejé en blanco</div><div class="bar-track"><div class="bar-fill" id="bar-q2-1"></div></div><div class="bar-pct" id="pct-q2-1">0%</div></div>
+        <div class="bar-row"><div class="bar-label"><span>B</span> Escribí rápido</div><div class="bar-track"><div class="bar-fill" id="bar-q2-2"></div></div><div class="bar-pct" id="pct-q2-2">0%</div></div>
+        <div class="bar-row"><div class="bar-label"><span>C</span> Intenté de nuevo</div><div class="bar-track"><div class="bar-fill" id="bar-q2-3"></div></div><div class="bar-pct" id="pct-q2-3">0%</div></div>
+        <div class="bar-row"><div class="bar-label"><span>D</span> Busqué apoyo</div><div class="bar-track"><div class="bar-fill" id="bar-q2-4"></div></div><div class="bar-pct" id="pct-q2-4">0%</div></div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-title">3. ¿Dónde aplica esto en Disuiza?</div>
+        <div class="bar-row"><div class="bar-label"><span>A</span> Decisiones rápidas</div><div class="bar-track"><div class="bar-fill" id="bar-q3-1"></div></div><div class="bar-pct" id="pct-q3-1">0%</div></div>
+        <div class="bar-row"><div class="bar-label"><span>B</span> Coordinación áreas</div><div class="bar-track"><div class="bar-fill" id="bar-q3-2"></div></div><div class="bar-pct" id="pct-q3-2">0%</div></div>
+        <div class="bar-row"><div class="bar-label"><span>C</span> Servicio al cliente</div><div class="bar-track"><div class="bar-fill" id="bar-q3-3"></div></div><div class="bar-pct" id="pct-q3-3">0%</div></div>
+        <div class="bar-row"><div class="bar-label"><span>D</span> Cambios y adaptación</div><div class="bar-track"><div class="bar-fill" id="bar-q3-4"></div></div><div class="bar-pct" id="pct-q3-4">0%</div></div>
+      </div>
+
+    </div>
+
+    <div class="leaderboard-column">
+      <div class="leaderboard-title">Top 10 Agilidad</div>
+      <div class="lead-list" id="board-body">
+        <div class="empty-state">Esperando resultados...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="loader">Actualizando...</div>
+
+<script>
+// URL de Google Apps Script (Debe ser la misma del index.html)
+const GAS = 'https://script.google.com/macros/s/AKfycbzvpgxigZM37ONNJ-v9jlvqyI0u604vcLE5dVoVfhSzBJJZAVIBL9DKctFXRuvIDKA/exec';
+
+async function fetchData() {
+  const loader = document.getElementById('loader');
+  loader.style.opacity = '1';
+
+  try {
+    const response = await fetch(GAS);
+    const data = await response.json();
+    
+    if (!data || data.length <= 1) {
+      loader.style.opacity = '0';
+      return;
+    }
+
+    let validRows = [];
+    let totalScores = 0;
+
+    // Contadores para las gráficas
+    let q1C = {1:0, 2:0, 3:0, 4:0}, q1T = 0;
+    let q2C = {1:0, 2:0, 3:0, 4:0}, q2T = 0;
+    let q3C = {1:0, 2:0, 3:0, 4:0}, q3T = 0;
+
+    // Procesar filas (data[0] son los encabezados)
+    for(let i = 1; i < data.length; i++) {
+      let row = data[i];
+      // Índices: 1=nombre, 2=area, 3=total, 4=dq1, 5=dq2, 6=dq3
+      
+      if(row[1] && row[3] !== "") { 
+        validRows.push({ nombre: row[1], score: parseInt(row[3]) || 0 });
+        totalScores += parseInt(row[3]) || 0;
+      }
+
+      // Contar respuestas de gráficas
+      let a1 = parseInt(row[4]), a2 = parseInt(row[5]), a3 = parseInt(row[6]);
+      if(a1 >= 1 && a1 <= 4) { q1C[a1]++; q1T++; }
+      if(a2 >= 1 && a2 <= 4) { q2C[a2]++; q2T++; }
+      if(a3 >= 1 && a3 <= 4) { q3C[a3]++; q3T++; }
+    }
+
+    // 1. Actualizar KPIs
+    const participants = validRows.length;
+    const avgScore = participants > 0 ? Math.round(totalScores / participants) : 0;
+    document.getElementById('kpi-total').textContent = participants;
+    document.getElementById('kpi-avg').textContent = avgScore;
+
+    // 2. Actualizar Gráficas de Barras
+    function updateBars(qId, counts, total) {
+      for(let i=1; i<=4; i++) {
+        let pct = total > 0 ? Math.round((counts[i] / total) * 100) : 0;
+        document.getElementById(`bar-${qId}-${i}`).style.width = pct + '%';
+        document.getElementById(`pct-${qId}-${i}`).textContent = pct + '%';
+      }
+    }
+    updateBars('q1', q1C, q1T);
+    updateBars('q2', q2C, q2T);
+    updateBars('q3', q3C, q3T);
+
+    // 3. Actualizar Leaderboard (Top 10)
+    validRows.sort((a, b) => b.score - a.score);
+    const top10 = validRows.slice(0, 10);
+    const tbody = document.getElementById('board-body');
+    
+    if(top10.length > 0) {
+      tbody.innerHTML = '';
+      top10.forEach((user, index) => {
+        const item = document.createElement('div');
+        item.className = 'lead-item';
+        item.innerHTML = `
+          <div class="lead-info">
+            <span class="lead-rank">#${index + 1}</span>
+            <span class="lead-name">${user.nombre}</span>
+          </div>
+          <div class="lead-score">${user.score}</div>
+        `;
+        tbody.appendChild(item);
+      });
+    }
+
+  } catch (error) {
+    console.error("Error al traer datos:", error);
+  } finally {
+    setTimeout(() => { loader.style.opacity = '0'; }, 1000);
+  }
+}
+
+// Iniciar recolección de datos
+fetchData();
+setInterval(fetchData, 15000);
+
+</script>
+</body>
+</html>
